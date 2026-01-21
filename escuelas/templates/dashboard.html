@@ -1,0 +1,342 @@
+ {% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>Dashboard de Escuelas Mejorado</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+<style>
+  body { margin:0; background:#d6d1ca; font-family:'Montserrat',sans-serif; color:#56212f; }
+  header { background:#977e5b; padding:20px; text-align:center; color:#fff; font-weight:600; position:relative; display:flex; justify-content:center; align-items:center; gap:20px; }
+  header img { height:60px; }
+  main { width:95%; margin:20px auto; background:#c3b08f; padding:20px; border-radius:15px; box-shadow:0 4px 12px rgba(0,0,0,0.2); }
+  h2 { color:#56212f; border-bottom:2px solid #56212f; padding-bottom:5px; margin-top:30px; font-weight:700; text-align:center; }
+  h3 { text-align:center; margin:10px 0; color:#56212f; }
+  .btn-dashboard { background:#56212f; color:#fff; padding:10px 20px; text-decoration:none; border-radius:8px; font-weight:600; display:inline-block; margin-top:15px; transition:0.3s; }
+  .btn-dashboard:hover { background:#977e5b; }
+  .filtro-btns { text-align:center; margin:20px 0; }
+  .filtro-btns button { background:#56212f; color:#fff; border:none; padding:10px 15px; margin:0 5px; border-radius:8px; cursor:pointer; font-weight:600; transition:0.3s; }
+  .filtro-btns button:hover { background:#977e5b; }
+  .chart-group { display:none; margin-bottom:30px; }
+  .chart-row { display:flex; justify-content:center; gap:40px; flex-wrap:wrap; }
+  .chart-item { width:400px; background:#fff; border-radius:15px; box-shadow:0 4px 10px rgba(0,0,0,0.15); padding:20px; text-align:center; transition:0.3s; }
+  .chart-item:hover { transform: translateY(-5px); }
+  .chart-item button { margin-top:10px; background:#56212f; color:#fff; border:none; padding:8px 12px; border-radius:5px; cursor:pointer; font-weight:600; transition:0.3s; }
+  .chart-item button:hover { background:#977e5b; }
+  .chart-item canvas { width:100% !important; height:400px !important; cursor:pointer; }
+
+  /* Tablas elegantes */
+  .resumen-grafica { width: 100%; margin-top: 10px; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+  .resumen-grafica th, .resumen-grafica td { padding: 10px 15px; text-align: left; }
+  .resumen-grafica th { background: #56212f; color: #fff; font-weight: 600; }
+  .resumen-grafica tr:nth-child(even) { background: #f3f0eb; }
+  .resumen-grafica tr:hover { background: #e8d6c1; }
+
+  /* Modal */
+  #modalGrafica { display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background-color:rgba(0,0,0,0.7); justify-content:center; align-items:center; }
+  #modalGraficaContent { background:#fff; padding:20px; border-radius:15px; position:relative; width:80%; max-width:1000px; max-height:90%; overflow:auto; }
+  #modalGraficaContent canvas { width:100% !important; height:600px !important; }
+  #cerrarModal { position:absolute; top:10px; right:10px; background:#56212f; color:#fff; border:none; padding:5px 10px; cursor:pointer; font-weight:600; border-radius:5px; }
+  #cerrarModal:hover { background:#977e5b; }
+
+  /* Botón regresar arriba */
+  #btnArriba {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background:#56212f;
+    color:#fff;
+    padding:10px 15px;
+    border-radius:50px;
+    font-weight:600;
+    cursor:pointer;
+    z-index:999;
+    transition:0.3s;
+  }
+  #btnArriba:hover { background:#977e5b; }
+
+  footer { text-align:center; margin-top:30px; }
+  footer img { height:50px; margin:10px; }
+</style>
+</head>
+<body>
+
+<header>
+  <img src="{% static 'img/Colibri_Dorado.png' %}" alt="Colibrí Dorado">
+  <h1>ESTADÍSTICOS DE ESCUELAS</h1>
+  <img src="{% static 'img/SEIEM_Logo.png' %}" alt="SEIEM Logo">
+</header>
+
+<main>
+<h2>Programas Tecnológicos Educativos </h2>
+<ul style="text-align:center; list-style:none; padding:0;">
+  <li>UNETE: {{ totales.unete }}</li>
+  <li>CFE: {{ totales.cfe }}</li>
+  <li>Escuelas: {{ totales.federales }}</li>
+</ul>
+<div style="text-align:center; margin-top:20px;">
+  <a href="{% url 'ver_mapa' %}" 
+     style="display:inline-block; width:35px; height:35px; line-height:35px; 
+            border-radius:50%; background:#56212f; color:#fff; text-align:center; 
+            text-decoration:none; font-weight:700; font-size:18px; transition:0.3s;">
+    ←
+  </a>
+</div>
+
+<div class="filtro-btns">
+  <button onclick="mostrarGrupo('unete')">UNETE</button>
+  <button onclick="mostrarGrupo('cfe')">CFE</button>
+  <button onclick="mostrarGrupo('federales')">Escuelas</button>
+</div>
+
+<!-- Gráficas y tablas -->
+<div id="grupo-unete" class="chart-group">
+  <h2>Gráficas UNETE</h2>
+  <div class="chart-row">
+    <div class="chart-item">
+      <h3>Municipios</h3>
+      <canvas id="municipiosUnete"></canvas>
+      <table class="resumen-grafica" id="resumen-municipiosUnete"></table>
+      <button onclick="descargarGrafica('municipiosUnete')">Descargar gráfica</button>
+      <button onclick="descargarTabla('municipiosUnete')">Descargar tabla</button>
+      <button onclick="toggleVerMas('municipiosUnete')" id="btnVerMas-municipiosUnete" style="margin-top:10px;">Ver más</button>
+      <div style="text-align:center; margin-bottom:15px;">
+        <a href="{% url 'descargar_unete' %}" class="btn-dashboard">Descargar información UNETE</a>
+      </div>
+    </div>
+    <div class="chart-item">
+      <h3>Niveles</h3>
+      <canvas id="nivelesUnete"></canvas>
+      <table class="resumen-grafica" id="resumen-nivelesUnete"></table>
+      <button onclick="descargarGrafica('nivelesUnete')">Descargar gráfica</button>
+      <button onclick="descargarTabla('nivelesUnete')">Descargar tabla</button>
+      <button onclick="toggleVerMas('nivelesUnete')" id="btnVerMas-nivelesUnete" style="margin-top:10px;">Ver más</button>
+    </div>
+  </div>
+</div>
+
+<div id="grupo-cfe" class="chart-group">
+  <h2>Gráficas CFE</h2>
+  <div class="chart-row">
+    <div class="chart-item">
+      <h3>Municipios</h3>
+      <canvas id="municipiosCfe"></canvas>
+      <table class="resumen-grafica" id="resumen-municipiosCfe"></table>
+      <button onclick="descargarGrafica('municipiosCfe')">Descargar gráfica</button>
+      <button onclick="descargarTabla('municipiosCfe')">Descargar tabla</button>
+      <button onclick="toggleVerMas('municipiosCfe')" id="btnVerMas-municipiosCfe" style="margin-top:10px;">Ver más</button>
+      <div style="text-align:center; margin-bottom:15px;">
+        <a href="{% url 'descargar_cfe' %}" class="btn-dashboard">Descargar información CFE</a>
+      </div>
+    </div>
+    <div class="chart-item">
+      <h3>Niveles</h3>
+      <canvas id="nivelesCfe"></canvas>
+      <table class="resumen-grafica" id="resumen-nivelesCfe"></table>
+      <button onclick="descargarGrafica('nivelesCfe')">Descargar gráfica</button>
+      <button onclick="descargarTabla('nivelesCfe')">Descargar tabla</button>
+      <button onclick="toggleVerMas('nivelesCfe')" id="btnVerMas-nivelesCfe" style="margin-top:10px;">Ver más</button>
+    </div>
+  </div>
+</div>
+
+<div id="grupo-federales" class="chart-group">
+  <h2>Gráficas Escuelas</h2>
+  <div class="chart-row">
+    <div class="chart-item">
+      <h3>Municipios</h3>
+      <canvas id="municipiosFederales"></canvas>
+      <table class="resumen-grafica" id="resumen-municipiosFederales"></table>
+      <button onclick="descargarGrafica('municipiosFederales')">Descargar gráfica</button>
+      <button onclick="descargarTabla('municipiosFederales')">Descargar tabla</button>
+      <button onclick="toggleVerMas('municipiosFederales')" id="btnVerMas-municipiosFederales" style="margin-top:10px;">Ver más</button>
+      <div style="text-align:center; margin-bottom:15px;">
+        <a href="{% url 'descargar_estatales' %}" class="btn-dashboard">Descargar información Escuelas</a>
+      </div>
+    </div>
+    <div class="chart-item">
+      <h3>Niveles</h3>
+      <canvas id="nivelesFederales"></canvas>
+      <table class="resumen-grafica" id="resumen-nivelesFederales"></table>
+      <button onclick="descargarGrafica('nivelesFederales')">Descargar gráfica</button>
+      <button onclick="descargarTabla('nivelesFederales')">Descargar tabla</button>
+      <button onclick="toggleVerMas('nivelesFederales')" id="btnVerMas-nivelesFederales" style="margin-top:10px;">Ver más</button>
+    </div>
+  </div>
+</div>
+
+<div style="text-align:center; margin-top:20px;">
+  <a href="{% url 'ver_mapa' %}" class="btn-dashboard">Regresar al mapa</a>
+</div>
+</main>
+
+<footer>
+  <img src="{% static 'img/pie_pag.png' %}" alt="Pie de página">
+</footer>
+
+<!-- Botón arriba -->
+<button id="btnArriba" onclick="window.scrollTo({ top: 0, behavior: 'smooth' });"> ↑</button>
+
+
+<!-- Modal -->
+<div id="modalGrafica">
+  <div id="modalGraficaContent">
+    <button id="cerrarModal">Cerrar</button>
+    <canvas id="graficaModal"></canvas>
+  </div>
+</div>
+
+<script>
+function mostrarGrupo(grupo){
+  ['unete','cfe','federales'].forEach(g=>{
+    document.getElementById('grupo-'+g).style.display = (grupo===g)?'block':'none';
+  });
+}
+mostrarGrupo('unete');
+
+const coloresBase=["#56212f","#977e5b","#c3b08f","#8c6746","#a88f71","#d1bfa3","#e8d6c1"];
+let charts={};
+let modalChart=null;
+
+// Crear gráficas pastel
+function crearGraficaPastel(id, labels, data, titulo){
+  const ctx = document.getElementById(id).getContext('2d');
+  const chart = new Chart(ctx, {
+    type: 'pie',
+    data: { labels: labels, datasets: [{ data: data, backgroundColor: coloresBase }] },
+    options: {
+      responsive: true,
+      plugins: {
+        title: { display: true, text: titulo, color: '#56212f', font: { weight: 'bold', size: 16 } },
+        legend: { position: 'bottom', labels: { color: '#56212f', font: { weight: '600' } } },
+        datalabels: {
+          color: '#fff',
+          font: { weight: 'bold', size: 12 },
+          formatter: (value, ctx) => {
+            return value; // Solo muestra el número
+          }
+        }
+      }
+    },
+    plugins: [ChartDataLabels]
+  });
+
+  document.getElementById(id).addEventListener('click', function() {
+    abrirModal(chart);
+  });
+
+  charts[id] = chart;
+}
+
+
+function llenarResumen(id, labels, data){
+  const table = document.getElementById('resumen-' + id);
+  if(!table) return;
+  table.innerHTML = '';
+  table.dataset.fullData = JSON.stringify(labels.map((l,i)=>({label:l,value:data[i]})));
+  const rows = table.dataset.fullData ? JSON.parse(table.dataset.fullData) : [];
+  const maxRows = 5;
+  rows.slice(0,maxRows).forEach(r=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${r.label}</td><td>${r.value}</td>`;
+    table.appendChild(tr);
+  });
+}
+
+function toggleVerMas(id){
+  const table=document.getElementById('resumen-' + id);
+  const rows = JSON.parse(table.dataset.fullData);
+  const btn=document.getElementById('btnVerMas-' + id);
+  if(btn.dataset.expanded==='true'){
+    table.innerHTML='';
+    rows.slice(0,5).forEach(r=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${r.label}</td><td>${r.value}</td>`;
+      table.appendChild(tr);
+    });
+    btn.textContent='Ver más';
+    btn.dataset.expanded='false';
+  } else {
+    table.innerHTML='';
+    rows.forEach(r=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${r.label}</td><td>${r.value}</td>`;
+      table.appendChild(tr);
+    });
+    btn.textContent='Ver menos';
+    btn.dataset.expanded='true';
+  }
+}
+
+function abrirModal(chart){
+  const modal=document.getElementById('modalGrafica');
+  const ctxModal=document.getElementById('graficaModal').getContext('2d');
+  if(modalChart) modalChart.destroy();
+  modalChart=new Chart(ctxModal,{
+    type: chart.config.type,
+    data: chart.data,
+    options:{...chart.options,responsive:true}
+  });
+  modal.style.display='flex';
+}
+
+document.getElementById('cerrarModal').addEventListener('click', function(){
+  document.getElementById('modalGrafica').style.display='none';
+  if(modalChart) modalChart.destroy();
+});
+
+function descargarGrafica(id){
+  const chart=charts[id];
+  if(chart){
+    const link=document.createElement('a');
+    link.href=chart.toBase64Image();
+    link.download=id+".png";
+    link.click();
+  }
+}
+
+function descargarTabla(id){
+  const table = document.getElementById('resumen-' + id);
+  if(!table) return;
+
+  let csvContent = "data:text/csv;charset=utf-8,Nombre,Valor\n";
+  const rows = JSON.parse(table.dataset.fullData || '[]');
+
+  rows.forEach(r => {
+    csvContent += `${r.label},${r.value}\n`;
+  });
+
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement('a');
+  link.setAttribute('href', encodedUri);
+  link.setAttribute('download', id + "_tabla.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+
+// Crear gráficas y llenar tablas
+crearGraficaPastel("municipiosUnete", {{ municipios_unete|safe }}.map(i=>i._id||"Sin Municipio"), {{ municipios_unete|safe }}.map(i=>i.count), "Municipios UNETE");
+crearGraficaPastel("nivelesUnete", {{ niveles_unete|safe }}.map(i=>i._id||"Sin Nivel"), {{ niveles_unete|safe }}.map(i=>i.count), "Niveles Educativos UNETE");
+
+crearGraficaPastel("municipiosCfe", {{ municipios_cfe|safe }}.map(i=>i._id||"Sin Municipio"), {{ municipios_cfe|safe }}.map(i=>i.count), "Municipios CFE");
+crearGraficaPastel("nivelesCfe", {{ niveles_cfe|safe }}.map(i=>i._id||"Sin Nivel"), {{ niveles_cfe|safe }}.map(i=>i.count), "Niveles Educativos CFE");
+
+crearGraficaPastel("municipiosFederales", {{ municipios_federales|safe }}.map(i=>i._id||"Sin Municipio"), {{ municipios_federales|safe }}.map(i=>i.count), "Municipios Escuelas");
+crearGraficaPastel("nivelesFederales", {{ niveles_federales|safe }}.map(i=>i._id||"Sin Nivel"), {{ niveles_federales|safe }}.map(i=>i.count), "Niveles Educativos Escuelas");
+
+llenarResumen("municipiosUnete", {{ municipios_unete|safe }}.map(i=>i._id||"Sin Municipio"), {{ municipios_unete|safe }}.map(i=>i.count));
+llenarResumen("nivelesUnete", {{ niveles_unete|safe }}.map(i=>i._id||"Sin Nivel"), {{ niveles_unete|safe }}.map(i=>i.count));
+
+llenarResumen("municipiosCfe", {{ municipios_cfe|safe }}.map(i=>i._id||"Sin Municipio"), {{ municipios_cfe|safe }}.map(i=>i.count));
+llenarResumen("nivelesCfe", {{ niveles_cfe|safe }}.map(i=>i._id||"Sin Nivel"), {{ niveles_cfe|safe }}.map(i=>i.count));
+
+llenarResumen("municipiosFederales", {{ municipios_federales|safe }}.map(i=>i._id||"Sin Municipio"), {{ municipios_federales|safe }}.map(i=>i.count));
+llenarResumen("nivelesFederales", {{ niveles_federales|safe }}.map(i=>i._id||"Sin Nivel"), {{ niveles_federales|safe }}.map(i=>i.count));
+</script>
+
+</body>
+</html>

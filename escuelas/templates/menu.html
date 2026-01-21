@@ -1,0 +1,338 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Menú SEIEM</title>
+
+<!-- Fuentes -->
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+    body {
+        margin: 0;
+        font-family: 'Open Sans', sans-serif;
+        color: #fff;
+        background: linear-gradient(to bottom, #5e3b34, #a1887f);
+        position: relative;
+        min-height: 100vh;
+        overflow-x: hidden;
+    }
+
+    body::before {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 400px;
+        height: 400px;
+        background: url("{% static 'img/Colibri_Sanguina.png' %}") no-repeat center center;
+        background-size: contain;
+        opacity: 0.35;
+        transform: translate(-50%, -50%);
+        z-index: 0;
+        filter: drop-shadow(0 0 20px rgba(255,255,255,0.6));
+        animation: floatColibri 6s ease-in-out infinite alternate;
+    }
+
+    @keyframes floatColibri {
+        0% { transform: translate(-50%, -52%); }
+        50% { transform: translate(-50%, -48%); }
+        100% { transform: translate(-50%, -52%); }
+    }
+
+    header {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        background: linear-gradient(to right, #58242b, #6b2c34);
+        padding: 20px 40px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        position: relative;
+        z-index: 1;
+    }
+
+    header .logo-header {
+        height: 60px;
+        width: auto;
+    }
+
+    header h1 {
+        font-family: 'Montserrat', sans-serif;
+        font-weight: 600;
+        font-size: 24px;
+        margin: 0;
+        text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+    }
+
+    .container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: flex-start;
+        margin: 120px 20px 100px 20px;
+        gap: 30px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .menu-button {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 200px;
+        padding: 25px;
+        background: rgba(88,24,43,0.85);
+        border-radius: 15px;
+        color: #fff;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 18px;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+        transition: all 0.3s ease;
+        text-align: center;
+        backdrop-filter: blur(4px);
+        cursor: pointer;
+    }
+
+    .menu-button img {
+        width: 48px;
+        height: 48px;
+        margin-bottom: 12px;
+    }
+
+    .menu-button:hover {
+        transform: translateY(-8px) scale(1.05);
+        background: rgba(121,85,72,0.95);
+        box-shadow: 0 12px 25px rgba(0,0,0,0.5);
+    }
+
+    .menu-button span {
+        font-size: 14px;
+        margin-top: 5px;
+        color: #f0f0f0;
+        font-weight: 400;
+    }
+
+    footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background: rgba(0,0,0,0.2);
+        text-align: center;
+        padding: 10px 0 25px 0;
+        z-index: 1;
+    }
+
+    footer img {
+        max-height: 50px;
+        width: auto;
+        display: block;
+        margin: 0 auto;
+    }
+
+    .credit {
+        font-size: 12px;
+        color: rgba(255,255,255,0.6);
+        margin-top: 5px;
+        font-style: italic;
+    }
+
+    /* ===== MODAL ===== */
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: rgba(0,0,0,0.7);
+        backdrop-filter: blur(3px);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .modal-content {
+        background: #fff;
+        color: #333;
+        padding: 25px;
+        border-radius: 12px;
+        max-width: 650px;
+        text-align: center;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+        animation: showModal 0.3s ease;
+    }
+
+    @keyframes showModal {
+        from { transform: scale(0.8); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+    }
+
+    .modal h2 {
+        margin-top: 0;
+        color: #58242b;
+    }
+
+    .close-btn {
+        background: #58242b;
+        color: #fff;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 8px;
+        cursor: pointer;
+        margin-top: 15px;
+        font-weight: bold;
+        transition: background 0.3s;
+    }
+
+    .close-btn:hover {
+        background: #8e3b4a;
+    }
+
+    /* ===== TABS ===== */
+    .tabs {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 15px;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .tablink {
+        background: #ddd;
+        border: none;
+        padding: 8px 15px;
+        cursor: pointer;
+        border-radius: 6px;
+        font-weight: bold;
+        transition: background 0.3s;
+    }
+
+    .tablink:hover {
+        background: #bbb;
+    }
+
+    .tablink.active {
+        background: #58242b;
+        color: #fff;
+    }
+
+    .tabcontent {
+        display: none;
+        text-align: center;
+    }
+</style>
+</head>
+<body>
+
+<header>
+    <img src="{% static 'img/SEIEM_Logo.png' %}" alt="SEIEM Logo" class="logo-header">
+    <h1>Departamento de Computación Electrónica en la Educación Elemental</h1>
+</header>
+
+<div class="container">
+    <a href="{% url 'ver_mapa' %}" class="menu-button">
+        <img src="https://cdn-icons-png.flaticon.com/512/854/854878.png" alt="Mapa">
+        Ver Mapa
+        <span>Explora las escuelas registradas en el sistema</span>
+    </a>
+    <div class="menu-button" onclick="openModal()">
+        <img src="https://cdn-icons-png.flaticon.com/512/1828/1828859.png" alt="Opción">
+        Otra Opción
+        <span>Conoce el propósito del proyecto</span>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal" id="infoModal">
+    <div class="modal-content">
+        <h2>Información del Proyecto</h2>
+
+        <!-- Pestañas -->
+        <div class="tabs">
+            <button class="tablink active" onclick="openTab(event, 'proposito')">🎯 Propósito</button>
+            <button class="tablink" onclick="openTab(event, 'tecnologias')">⚙️ Tecnologías</button>
+            <button class="tablink" onclick="openTab(event, 'manual')">📖 Manual</button>
+            <button class="tablink" onclick="openTab(event, 'equipo')">👩‍💻 Equipo</button>
+        </div>
+
+        <!-- Contenido -->
+        <div id="proposito" class="tabcontent" style="display:block;">
+            <h3>Propósito del Proyecto</h3>
+            <p>
+                Este sistema fue desarrollado con la finalidad de optimizar el registro, 
+                consulta y visualización de escuelas en la plataforma SEIEM, brindando 
+                una herramienta moderna, accesible y eficiente.
+            </p>
+        </div>
+
+        <div id="tecnologias" class="tabcontent">
+            <h3>Tecnologías utilizadas</h3>
+            <p>
+                ✔️ Django (framework web)<br>
+                ✔️ Python (lógica del servidor)<br>
+                ✔️ MongoDB (base de datos)<br>
+                ✔️ HTML5, CSS3 y JavaScript (interfaz)<br>
+                ✔️ Leaflet.js (mapa interactivo)
+            </p>
+        </div>
+
+        <div id="manual" class="tabcontent">
+            <h3>Manual de Usuario</h3>
+            <p>Puedes consultarlo directamente aquí:</p>
+            <iframe src="{% static 'manual/manual_usuario.pdf' %}" 
+                    width="100%" height="300px" 
+                    style="border:1px solid #ccc; border-radius:8px;">
+            </iframe>
+            <p>
+                O descárgalo aquí: 
+                <a href="{% static 'manual/manual_usuario.pdf' %}" target="_blank">📥 Descargar Manual</a>
+            </p>
+        </div>
+
+
+        <div id="equipo" class="tabcontent">
+            <h3>Equipo de Desarrollo</h3>
+            <p>
+                👩‍💻 <b>Andrea Quiroz Guzmán</b><br>
+                👨‍💻 <b>José Eduardo Alcantar Cabrera</b><br>
+                👩‍💻👨‍💻 <b>Oficina de Administración de Recursos </b><br>
+                
+            </p>
+            <p style="font-style:italic; color:#555;">Departamento de Computación Electrónica en la Educación Elemental</p>
+        </div>
+
+        <button class="close-btn" onclick="closeModal()">Cerrar</button>
+    </div>
+</div>
+
+<footer>
+    <img src="{% static 'img/pie_pag.png' %}" alt="Pie de página">
+
+</footer>
+
+<script>
+function openModal() {
+    document.getElementById("infoModal").style.display = "flex";
+}
+function closeModal() {
+    document.getElementById("infoModal").style.display = "none";
+}
+function openTab(evt, tabId) {
+    var i, tabcontent, tablink;
+    tabcontent = document.getElementsByClassName("tabcontent");
+    for (i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
+    }
+    tablink = document.getElementsByClassName("tablink");
+    for (i = 0; i < tablink.length; i++) {
+        tablink[i].classList.remove("active");
+    }
+    document.getElementById(tabId).style.display = "block";
+    evt.currentTarget.classList.add("active");
+}
+</script>
+
+</body>
+</html>
