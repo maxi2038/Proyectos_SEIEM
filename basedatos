@@ -1,0 +1,83 @@
+CREATE DATABASE IF NOT EXISTS 123;
+USE escuelas;
+
+CREATE TABLE datos_escuelas (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  nivel_educativo VARCHAR(100),
+  cct VARCHAR(20),
+  nombre_ct VARCHAR(255),
+  domicilio TEXT,
+  colonia VARCHAR(100),
+  localidad VARCHAR(100),
+  municipio VARCHAR(100),
+  cp VARCHAR(10),
+  sector_educativo VARCHAR(50),
+  zona_escolar VARCHAR(50),
+  turno VARCHAR(50),
+  coordenadas VARCHAR(100),
+  latitud VARCHAR(50),
+  longitud VARCHAR(50),
+  nombre_director VARCHAR(255),
+  telefono_director VARCHAR(20),
+  telefono_ct VARCHAR(20),
+  correo_institucional VARCHAR(100),
+  internet_cfe VARCHAR(100),
+  fecha_entrega DATE,
+  fecha_instalacion DATE,
+  programa_unete VARCHAR(100),
+  equipamiento_unete VARCHAR(100),
+  fecha_instalacion_unete DATE,
+  nombre_donante VARCHAR(255)
+  
+  ALTER TABLE datos_escuelas ADD COLUMN contrasena VARCHAR(255) DEFAULT NULL;
+
+);
+
+
+
+CREATE TABLE IF NOT EXISTS preguntas (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  formulario VARCHAR(50),           -- cfe, unete, general
+  texto TEXT,                       -- pregunta
+  tipo VARCHAR(20),                 -- tipo: radio, select, text, date
+  opciones TEXT,                    -- opciones para radio/select separadas por coma
+  depende_de INT DEFAULT NULL,      -- id de pregunta de la que depende (NULL si independiente)
+  valor_dependencia VARCHAR(50),    -- valor que activa esta pregunta
+  FOREIGN KEY (depende_de) REFERENCES preguntas(id)
+);
+
+
+CREATE TABLE respuestas (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  cct VARCHAR(20),          -- usuario (escuela)
+  formulario VARCHAR(50),
+  pregunta_id INT,
+  respuesta TEXT,
+  fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (pregunta_id) REFERENCES preguntas(id)
+);
+
+
+
+CREATE TABLE usuarios_otde (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    usuario VARCHAR(50) UNIQUE,
+    contrasena VARCHAR(255) DEFAULT NULL
+);
+
+
+
+INSERT INTO datos_escuelas (cct, contrasena)
+VALUES 
+('OTDE_ATLACOMULCO', NULL),
+('OTDE_TOLUCA', NULL),
+('OTDE_ECATEPEC', NULL),
+('OTDE_NAUCALPAN', NULL),
+('OTDE_NEZAHUALCOYOTL', NULL),
+('OTDE_PVTOLUCA', NULL),
+('OTDE_PVMEXICO', NULL),
+('OTDE_EVTOLUCA', NULL),
+('OTDE_EVMEXICO', NULL),
+('OTDE_INDIGENA', NULL),
+('OTDE_ADULTOS', NULL),
+('OTDE_INICIAL', NULL);
