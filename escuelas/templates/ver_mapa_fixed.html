@@ -1,0 +1,232 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Mapa Interactivo - SEIEM{% endblock %}
+
+{% block extra_css %}
+<!-- Leaflet & Clustering -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+<style>
+    .map-header-white {
+        background: white;
+        padding: 15px 40px;
+        border-bottom: 1px solid #eee;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    #map {
+        flex: 1;
+        z-index: 10;
+    }
+
+    .status-badge {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-right: 8px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="map-header-white">
+    <i class="fas fa-map-location-dot" style="color: var(--burgundy); font-size: 1.6rem;"></i>
+    <div>
+        <h2 style="margin:0; font-size: 1.15rem; font-weight: 800;">Georeferenciación de Centros de Trabajo</h2>
+        <span style="font-size: 0.75rem; color: #888; font-weight: 600;">Mapa Interactivo — Estado de México</span>
+    </div>
+</div>
+
+<div class="map-view">
+    <!-- Sidebar -->
+    <aside class="map-sidebar">
+        <div class="sidebar-label">Filtros de Búsqueda</div>
+        <div class="sidebar-content">
+            <form method="get" id="filterForm">
+                <div class="input-block">
+                    <label>Buscar (CCT o Nombre)</label>
+                    <div style="position: relative;">
+                        <input type="text" name="buscar" value="{{ buscar }}" placeholder="Escribe CCT o Nombre..."
+                            class="form-ctrl" style="padding-left: 35px;">
+                        <i class="fas fa-search"
+                            style="position: absolute; left: 12px; top: 13px; color: #bbb; font-size: 0.85rem;"></i>
+                    </div>
+                </div>
+
+                <div class="input-block">
+                    <label>Programas Tecnológicos</label>
+                    <div style="display: flex; flex-direction: column; gap: 10px; padding-left: 5px;">
+                        <label
+                            style="display:flex; align-items:center; cursor:pointer; font-size:0.85rem; font-weight:600;">
+                            <input type="checkbox" name="coleccion" value="unete" {{ unete_checked }}
+                                style="margin-right:12px; width:16px; height:16px; accent-color: var(--burgundy);">
+                            UNETE
+                        </label>
+                        <label
+                            style="display:flex; align-items:center; cursor:pointer; font-size:0.85rem; font-weight:600;">
+                            <input type="checkbox" name="coleccion" value="cfe" {{ cfe_checked }}
+                                style="margin-right:12px; width:16px; height:16px; accent-color: var(--burgundy);"> CFE
+                        </label>
+                        <label
+                            style="display:flex; align-items:center; cursor:pointer; font-size:0.85rem; font-weight:600;">
+                            <input type="checkbox" name="coleccion" value="estatales" {{ estatales_checked }}
+                                style="margin-right:12px; width:16px; height:16px; accent-color: var(--burgundy);">
+                            Escuelas
+                        </label>
+                    </div>
+                </div>
+
+                <div class="input-block">
+                    <label>Municipio</label>
+                    <select name="municipio" class="form-ctrl">
+                        <option value="">-- Todos los municipios --</option>
+                        {% for item in municipios %}
+                        <option value="{{ item.nombre }}" {% if item.selected %}selected{% endif %}>{{ item.nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="input-block">
+                    <label>Zona Escolar</label>
+                    <select name="zona_escolar" class="form-ctrl">
+                        <option value="">-- Todas las zonas --</option>
+                        {% for item in zonas %}
+                        <option value="{{ item.nombre }}" {% if item.selected %}selected{% endif %}>{{ item.nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="input-block">
+                    <label>Nivel Educativo</label>
+                    <select name="nivel_educativo" class="form-ctrl">
+                        <option value="">-- Todos los niveles --</option>
+                        {% for item in niveles %}
+                        <option value="{{ item.nombre }}" {% if item.selected %}selected{% endif %}>{{ item.nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <button type="submit" class="btn-submit">
+                    <i class="fas fa-filter"></i> Filtrar Resultados
+                </button>
+                <button type="button" onclick="window.location.href='{% url 'ver_mapa' %}'" class="btn-clear">
+                    Limpiar Filtros
+                </button>
+            </form>
+
+            <div style="margin-top: 35px; padding-top: 25px; border-top: 1px solid #f0f0f0;">
+                <label
+                    style="display:block; font-size:0.7rem; font-weight:800; color:#aaa; text-transform:uppercase; margin-bottom:15px;">Leyenda
+                    de Estado</label>
+                <div style="display:flex; flex-direction:column; gap:12px; font-size:0.85rem; font-weight:600;">
+                    <div><span class="status-badge" style="background:#28a745"></span> Activo</div>
+                    <div><span class="status-badge" style="background:#ffc107"></span> Pendiente</div>
+                    <div><span class="status-badge" style="background:#dc3545"></span> Inactivo</div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Map -->
+    <div id="map"></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+<script>
+    const map = L.map('map').setView([19.35, -99.6], 9);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 20
+    }).addTo(map);
+
+    const clusters = L.markerClusterGroup({
+        showCoverageOnHover: false,
+        chunkedLoading: true,
+        maxClusterRadius: 50,
+        disableClusteringAtZoom: 16
+    });
+
+    const datos = {{ datos_json| safe }};
+
+    const createIcon = (color) => L.divIcon({
+        html: `<i class="fas fa-location-dot" style="color:${color}; font-size:1.8rem; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));"></i>`,
+        className: 'marker-icon',
+        iconSize: [20, 20],
+        iconAnchor: [10, 20],
+        popupAnchor: [0, -20]
+    });
+
+    datos.forEach(function (item) {
+        if (!item.LATITUD || !item.LONGITUD) return;
+
+        let color = '#28a745';
+        let marker = L.marker([item.LATITUD, item.LONGITUD], { icon: createIcon(color) });
+
+        let nombre  = item.NOMBRE_CT || item['NOMBRE DEL CT'] || 'Sin Nombre';
+        // Director: CFE usa nombre largo, otras colecciones usan nombre corto
+        let director = item['NOMBRE DEL DIRECTOR']
+                    || item['NOMBRE DEL DIRECTOR O RESPONSABLE DEL CT']
+                    || '';
+        let telefono = item['NO TELEFONICO DEL DIRECTOR']
+                    || item['TELEFONO']
+                    || item['TELÉFONO']
+                    || '';
+        let zona    = item['ZONA ESCOLAR'] || '';
+        let sector  = item['SECTOR EDUCATIVO'] || '';
+        let nivel   = item['NIVEL EDUCATIVO'] || '';
+        let municipio = item.MUNICIPIO || '';
+
+        // Helper: genera una fila del popup solo si el valor existe
+        function fila(etiqueta, valor) {
+            if (!valor || String(valor).trim() === '') return '';
+            return `<tr>
+                <td style="color:#999;font-weight:700;padding:2px 8px 2px 0;white-space:nowrap;">${etiqueta}</td>
+                <td style="color:#333;padding:2px 0;">${valor}</td>
+            </tr>`;
+        }
+
+        let popup = `
+            <div style="font-family:'Montserrat',sans-serif;padding:6px 4px;min-width:230px;max-width:290px;">
+                <div style="color:var(--burgundy);font-size:13px;font-weight:800;line-height:1.3;
+                            margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid #f0e8ea;">
+                    ${nombre}
+                </div>
+                <table style="font-size:11px;border-collapse:collapse;width:100%;">
+                    ${fila('CCT', item.CCT)}
+                    ${fila('NIVEL', nivel)}
+                    ${fila('DIRECTOR', director)}
+                    ${fila('TELÉFONO', telefono)}
+                    ${fila('ZONA', zona)}
+                    ${fila('SECTOR', sector)}
+                    ${fila('MUNICIPIO', municipio)}
+                </table>
+                <a href="https://www.google.com/maps?q=${item.LATITUD},${item.LONGITUD}" target="_blank"
+                   style="display:block;text-align:center;background:var(--burgundy);color:white;
+                          text-decoration:none;padding:8px;border-radius:6px;font-size:11px;
+                          font-weight:800;margin-top:12px;letter-spacing:0.3px;">
+                    <i class="fas fa-map-location-dot"></i> VER EN GOOGLE MAPS
+                </a>
+            </div>
+        `;
+        marker.bindPopup(popup, { maxWidth: 300 });
+        clusters.addLayer(marker);
+    });
+
+    map.addLayer(clusters);
+    if (datos.length > 0) map.fitBounds(clusters.getBounds(), { padding: [50, 50] });
+
+</script>
+{% endblock %}

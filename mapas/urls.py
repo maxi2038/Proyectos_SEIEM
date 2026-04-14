@@ -25,7 +25,8 @@ urlpatterns = [
     path('descargar/unete/', views.descargar_unete, name='descargar_unete'),
     path('descargar/cfe/', views.descargar_cfe, name='descargar_cfe'),
     path('descargar/estatales/', views.descargar_estatales, name='descargar_estatales'),
-    
-    
+    path('cargar/unete/', views.cargar_unete, name='cargar_unete'),
+    path('cargar/cfe/', views.cargar_cfe, name='cargar_cfe'),
+    path('cargar/estatales/', views.cargar_estatales, name='cargar_estatales'),
 ]
 

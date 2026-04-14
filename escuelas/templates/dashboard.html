@@ -1,342 +1,595 @@
- {% load static %}
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8" />
-<title>Dashboard de Escuelas Mejorado</title>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Estadísticos - SEIEM{% endblock %}
+
+{% block extra_css %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
 <style>
-  body { margin:0; background:#d6d1ca; font-family:'Montserrat',sans-serif; color:#56212f; }
-  header { background:#977e5b; padding:20px; text-align:center; color:#fff; font-weight:600; position:relative; display:flex; justify-content:center; align-items:center; gap:20px; }
-  header img { height:60px; }
-  main { width:95%; margin:20px auto; background:#c3b08f; padding:20px; border-radius:15px; box-shadow:0 4px 12px rgba(0,0,0,0.2); }
-  h2 { color:#56212f; border-bottom:2px solid #56212f; padding-bottom:5px; margin-top:30px; font-weight:700; text-align:center; }
-  h3 { text-align:center; margin:10px 0; color:#56212f; }
-  .btn-dashboard { background:#56212f; color:#fff; padding:10px 20px; text-decoration:none; border-radius:8px; font-weight:600; display:inline-block; margin-top:15px; transition:0.3s; }
-  .btn-dashboard:hover { background:#977e5b; }
-  .filtro-btns { text-align:center; margin:20px 0; }
-  .filtro-btns button { background:#56212f; color:#fff; border:none; padding:10px 15px; margin:0 5px; border-radius:8px; cursor:pointer; font-weight:600; transition:0.3s; }
-  .filtro-btns button:hover { background:#977e5b; }
-  .chart-group { display:none; margin-bottom:30px; }
-  .chart-row { display:flex; justify-content:center; gap:40px; flex-wrap:wrap; }
-  .chart-item { width:400px; background:#fff; border-radius:15px; box-shadow:0 4px 10px rgba(0,0,0,0.15); padding:20px; text-align:center; transition:0.3s; }
-  .chart-item:hover { transform: translateY(-5px); }
-  .chart-item button { margin-top:10px; background:#56212f; color:#fff; border:none; padding:8px 12px; border-radius:5px; cursor:pointer; font-weight:600; transition:0.3s; }
-  .chart-item button:hover { background:#977e5b; }
-  .chart-item canvas { width:100% !important; height:400px !important; cursor:pointer; }
-
-  /* Tablas elegantes */
-  .resumen-grafica { width: 100%; margin-top: 10px; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
-  .resumen-grafica th, .resumen-grafica td { padding: 10px 15px; text-align: left; }
-  .resumen-grafica th { background: #56212f; color: #fff; font-weight: 600; }
-  .resumen-grafica tr:nth-child(even) { background: #f3f0eb; }
-  .resumen-grafica tr:hover { background: #e8d6c1; }
-
-  /* Modal */
-  #modalGrafica { display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background-color:rgba(0,0,0,0.7); justify-content:center; align-items:center; }
-  #modalGraficaContent { background:#fff; padding:20px; border-radius:15px; position:relative; width:80%; max-width:1000px; max-height:90%; overflow:auto; }
-  #modalGraficaContent canvas { width:100% !important; height:600px !important; }
-  #cerrarModal { position:absolute; top:10px; right:10px; background:#56212f; color:#fff; border:none; padding:5px 10px; cursor:pointer; font-weight:600; border-radius:5px; }
-  #cerrarModal:hover { background:#977e5b; }
-
-  /* Botón regresar arriba */
-  #btnArriba {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background:#56212f;
-    color:#fff;
-    padding:10px 15px;
-    border-radius:50px;
-    font-weight:600;
-    cursor:pointer;
-    z-index:999;
-    transition:0.3s;
+  .legend-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 10px;
   }
-  #btnArriba:hover { background:#977e5b; }
 
-  footer { text-align:center; margin-top:30px; }
-  footer img { height:50px; margin:10px; }
+  .tab-section {
+    display: none;
+  }
+
+  .tab-section.active {
+    display: block;
+  }
+
+  /* ---- Botones de acción (descarga / carga) ---- */
+  .action-bar {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+    border-top: 1px solid #eee;
+    padding-top: 20px;
+    flex-wrap: wrap;
+  }
+
+  .btn-download {
+    flex: 1;
+    min-width: 160px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 11px 18px;
+    background: #7A3E4D;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.2s, transform 0.1s;
+  }
+  .btn-download:hover { background: #56212F; transform: translateY(-1px); }
+
+  .btn-upload {
+    flex: 1;
+    min-width: 160px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 11px 18px;
+    background: transparent;
+    color: #7A3E4D;
+    border: 2px solid #7A3E4D;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, transform 0.1s;
+  }
+  .btn-upload:hover { background: #7A3E4D; color: #fff; transform: translateY(-1px); }
+
+  /* ---- Modal de carga masiva ---- */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 9000;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(3px);
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal-box {
+    background: #fff;
+    border-radius: 16px;
+    padding: 36px 32px 28px;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    position: relative;
+    animation: modalIn 0.22s ease;
+  }
+  @keyframes modalIn {
+    from { opacity: 0; transform: translateY(24px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .modal-close {
+    position: absolute;
+    top: 14px; right: 18px;
+    background: none; border: none;
+    font-size: 1.3rem; color: #888; cursor: pointer;
+  }
+  .modal-close:hover { color: #333; }
+
+  .modal-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #56212F;
+    margin-bottom: 6px;
+  }
+  .modal-subtitle {
+    font-size: 0.8rem;
+    color: #888;
+    margin-bottom: 22px;
+  }
+
+  .drop-zone {
+    border: 2px dashed #C3A04F;
+    border-radius: 10px;
+    padding: 32px 20px;
+    text-align: center;
+    color: #999;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    position: relative;
+  }
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: #7A3E4D;
+    background: #fdf6f8;
+    color: #7A3E4D;
+  }
+  .drop-zone i { font-size: 2rem; display: block; margin-bottom: 8px; }
+  .drop-zone input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer;
+  }
+  .file-name-display {
+    margin-top: 10px;
+    font-size: 0.8rem;
+    color: #7A3E4D;
+    font-weight: 600;
+    min-height: 18px;
+  }
+
+  .btn-submit-upload {
+    width: 100%;
+    margin-top: 20px;
+    padding: 13px;
+    background: #7A3E4D;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: background 0.2s;
+  }
+  .btn-submit-upload:hover { background: #56212F; }
+  .btn-submit-upload:disabled { background: #ccc; cursor: not-allowed; }
+
+  /* Resultado */
+  .upload-result {
+    display: none;
+    margin-top: 18px;
+    padding: 14px 16px;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    line-height: 1.7;
+  }
+  .upload-result.success { background: #eaffea; border: 1px solid #74c878; color: #1a6b1e; }
+  .upload-result.error   { background: #fff0f0; border: 1px solid #e07070; color: #7a1111; }
+
+  /* Spinner */
+  .spinner {
+    display: inline-block;
+    width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Note sobre CCT */
+  .cct-note {
+    font-size: 0.75rem;
+    color: #999;
+    background: #fafafa;
+    border: 1px solid #eee;
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-top: 14px;
+    line-height: 1.5;
+  }
+  .cct-note i { color: #C3A04F; margin-right: 4px; }
 </style>
-</head>
-<body>
+{% endblock %}
 
-<header>
-  <img src="{% static 'img/Colibri_Dorado.png' %}" alt="Colibrí Dorado">
-  <h1>ESTADÍSTICOS DE ESCUELAS</h1>
-  <img src="{% static 'img/SEIEM_Logo.png' %}" alt="SEIEM Logo">
-</header>
-
-<main>
-<h2>Programas Tecnológicos Educativos </h2>
-<ul style="text-align:center; list-style:none; padding:0;">
-  <li>UNETE: {{ totales.unete }}</li>
-  <li>CFE: {{ totales.cfe }}</li>
-  <li>Escuelas: {{ totales.federales }}</li>
-</ul>
-<div style="text-align:center; margin-top:20px;">
-  <a href="{% url 'ver_mapa' %}" 
-     style="display:inline-block; width:35px; height:35px; line-height:35px; 
-            border-radius:50%; background:#56212f; color:#fff; text-align:center; 
-            text-decoration:none; font-weight:700; font-size:18px; transition:0.3s;">
-    ←
-  </a>
+{% block content %}
+<!-- Stats Summary Bar -->
+<div class="stats-bar" style="padding: 15px 5%; gap: 5%;">
+  <div class="stat-item">
+    <i class="fas fa-bolt" style="font-size: 1.2rem;"></i>
+    <div class="stat-info">
+      <span class="stat-value" style="font-size: 1.2rem;">{{ totales.unete|default:"0" }}</span>
+      <span class="stat-label" style="font-size: 0.6rem;">UNETE</span>
+    </div>
+  </div>
+  <div class="stat-item">
+    <i class="fas fa-building-columns" style="font-size: 1.2rem;"></i>
+    <div class="stat-info">
+      <span class="stat-value" style="font-size: 1.2rem;">{{ totales.cfe|default:"0" }}</span>
+      <span class="stat-label" style="font-size: 0.6rem;">CFE</span>
+    </div>
+  </div>
+  <div class="stat-item">
+    <i class="fas fa-school" style="font-size: 1.2rem;"></i>
+    <div class="stat-info">
+      <span class="stat-value" style="font-size: 1.2rem;">{{ totales.federales|default:"0" }}</span>
+      <span class="stat-label" style="font-size: 0.6rem;">Escuelas</span>
+    </div>
+  </div>
+  <div class="stat-item">
+    <i class="fas fa-graduation-cap" style="font-size: 1.2rem;"></i>
+    <div class="stat-info">
+      <span class="stat-value" style="font-size: 1.2rem;">4</span>
+      <span class="stat-label" style="font-size: 0.6rem;">Niveles</span>
+    </div>
+  </div>
 </div>
 
-<div class="filtro-btns">
-  <button onclick="mostrarGrupo('unete')">UNETE</button>
-  <button onclick="mostrarGrupo('cfe')">CFE</button>
-  <button onclick="mostrarGrupo('federales')">Escuelas</button>
-</div>
+<div class="dashboard-container">
+  <div class="tab-nav">
+    <button onclick="showTab('unete')" id="tab-unete" class="tab-link active">UNETE</button>
+    <button onclick="showTab('cfe')" id="tab-cfe" class="tab-link">CFE</button>
+    <button onclick="showTab('federales')" id="tab-federales" class="tab-link">Escuelas</button>
+  </div>
 
-<!-- Gráficas y tablas -->
-<div id="grupo-unete" class="chart-group">
-  <h2>Gráficas UNETE</h2>
-  <div class="chart-row">
-    <div class="chart-item">
-      <h3>Municipios</h3>
-      <canvas id="municipiosUnete"></canvas>
-      <table class="resumen-grafica" id="resumen-municipiosUnete"></table>
-      <button onclick="descargarGrafica('municipiosUnete')">Descargar gráfica</button>
-      <button onclick="descargarTabla('municipiosUnete')">Descargar tabla</button>
-      <button onclick="toggleVerMas('municipiosUnete')" id="btnVerMas-municipiosUnete" style="margin-top:10px;">Ver más</button>
-      <div style="text-align:center; margin-bottom:15px;">
-        <a href="{% url 'descargar_unete' %}" class="btn-dashboard">Descargar información UNETE</a>
+  <!-- Section UNETE -->
+  <div id="section-unete" class="tab-section active">
+    <div class="grid-2">
+      <div class="card">
+        <h3 class="card-h">Municipios</h3>
+        <p class="card-p">Distribución por municipio — UNETE</p>
+        <div style="height: 280px; position: relative; margin-bottom: 20px;">
+          <canvas id="chartUnm"></canvas>
+        </div>
+        <table class="stats-table">
+          <thead>
+            <tr>
+              <th>Municipio</th>
+              <th style="text-align: right;">Total</th>
+            </tr>
+          </thead>
+          <tbody id="table-unm"></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h3 class="card-h">Niveles Educativos</h3>
+        <p class="card-p">Distribución por nivel — UNETE</p>
+        <div style="height: 350px;">
+          <canvas id="chartUnn"></canvas>
+        </div>
+        <div class="action-bar">
+          <a href="{% url 'descargar_unete' %}" class="btn-download">
+            <i class="fas fa-download"></i> Descargar UNETE
+          </a>
+          <button class="btn-upload" onclick="abrirModal('unete', 'UNETE')">
+            <i class="fas fa-upload"></i> Carga Masiva
+          </button>
+        </div>
       </div>
     </div>
-    <div class="chart-item">
-      <h3>Niveles</h3>
-      <canvas id="nivelesUnete"></canvas>
-      <table class="resumen-grafica" id="resumen-nivelesUnete"></table>
-      <button onclick="descargarGrafica('nivelesUnete')">Descargar gráfica</button>
-      <button onclick="descargarTabla('nivelesUnete')">Descargar tabla</button>
-      <button onclick="toggleVerMas('nivelesUnete')" id="btnVerMas-nivelesUnete" style="margin-top:10px;">Ver más</button>
-    </div>
   </div>
-</div>
 
-<div id="grupo-cfe" class="chart-group">
-  <h2>Gráficas CFE</h2>
-  <div class="chart-row">
-    <div class="chart-item">
-      <h3>Municipios</h3>
-      <canvas id="municipiosCfe"></canvas>
-      <table class="resumen-grafica" id="resumen-municipiosCfe"></table>
-      <button onclick="descargarGrafica('municipiosCfe')">Descargar gráfica</button>
-      <button onclick="descargarTabla('municipiosCfe')">Descargar tabla</button>
-      <button onclick="toggleVerMas('municipiosCfe')" id="btnVerMas-municipiosCfe" style="margin-top:10px;">Ver más</button>
-      <div style="text-align:center; margin-bottom:15px;">
-        <a href="{% url 'descargar_cfe' %}" class="btn-dashboard">Descargar información CFE</a>
+  <!-- Section CFE -->
+  <div id="section-cfe" class="tab-section">
+    <div class="grid-2">
+      <div class="card">
+        <h3 class="card-h">Municipios (CFE)</h3>
+        <p class="card-p">Distribución por municipio — CFE</p>
+        <div style="height: 280px; position: relative; margin-bottom: 20px;">
+          <canvas id="chartCfeM"></canvas>
+        </div>
+        <table class="stats-table">
+          <thead>
+            <tr>
+              <th>Municipio</th>
+              <th style="text-align: right;">Total</th>
+            </tr>
+          </thead>
+          <tbody id="table-cfe-m"></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h3 class="card-h">Niveles Educativos (CFE)</h3>
+        <p class="card-p">Distribución por nivel — CFE</p>
+        <div style="height: 350px;">
+          <canvas id="chartCfeN"></canvas>
+        </div>
+        <div class="action-bar">
+          <a href="{% url 'descargar_cfe' %}" class="btn-download">
+            <i class="fas fa-download"></i> Descargar CFE
+          </a>
+          <button class="btn-upload" onclick="abrirModal('cfe', 'CFE')">
+            <i class="fas fa-upload"></i> Carga Masiva
+          </button>
+        </div>
       </div>
     </div>
-    <div class="chart-item">
-      <h3>Niveles</h3>
-      <canvas id="nivelesCfe"></canvas>
-      <table class="resumen-grafica" id="resumen-nivelesCfe"></table>
-      <button onclick="descargarGrafica('nivelesCfe')">Descargar gráfica</button>
-      <button onclick="descargarTabla('nivelesCfe')">Descargar tabla</button>
-      <button onclick="toggleVerMas('nivelesCfe')" id="btnVerMas-nivelesCfe" style="margin-top:10px;">Ver más</button>
-    </div>
   </div>
-</div>
 
-<div id="grupo-federales" class="chart-group">
-  <h2>Gráficas Escuelas</h2>
-  <div class="chart-row">
-    <div class="chart-item">
-      <h3>Municipios</h3>
-      <canvas id="municipiosFederales"></canvas>
-      <table class="resumen-grafica" id="resumen-municipiosFederales"></table>
-      <button onclick="descargarGrafica('municipiosFederales')">Descargar gráfica</button>
-      <button onclick="descargarTabla('municipiosFederales')">Descargar tabla</button>
-      <button onclick="toggleVerMas('municipiosFederales')" id="btnVerMas-municipiosFederales" style="margin-top:10px;">Ver más</button>
-      <div style="text-align:center; margin-bottom:15px;">
-        <a href="{% url 'descargar_estatales' %}" class="btn-dashboard">Descargar información Escuelas</a>
+  <!-- Section Escuelas -->
+  <div id="section-federales" class="tab-section">
+    <div class="grid-2">
+      <div class="card">
+        <h3 class="card-h">Municipios (Escuelas)</h3>
+        <p class="card-p">Distribución por municipio — Escuelas</p>
+        <div style="height: 280px; position: relative; margin-bottom: 20px;">
+          <canvas id="chartFedM"></canvas>
+        </div>
+        <table class="stats-table">
+          <thead>
+            <tr>
+              <th>Municipio</th>
+              <th style="text-align: right;">Total</th>
+            </tr>
+          </thead>
+          <tbody id="table-fed-m"></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h3 class="card-h">Niveles Educativos (Escuelas)</h3>
+        <p class="card-p">Distribución por nivel — Escuelas</p>
+        <div style="height: 350px;">
+          <canvas id="chartFedN"></canvas>
+        </div>
+        <div class="action-bar">
+          <a href="{% url 'descargar_estatales' %}" class="btn-download">
+            <i class="fas fa-download"></i> Descargar Escuelas
+          </a>
+          <button class="btn-upload" onclick="abrirModal('estatales', 'Escuelas')">
+            <i class="fas fa-upload"></i> Carga Masiva
+          </button>
+        </div>
       </div>
     </div>
-    <div class="chart-item">
-      <h3>Niveles</h3>
-      <canvas id="nivelesFederales"></canvas>
-      <table class="resumen-grafica" id="resumen-nivelesFederales"></table>
-      <button onclick="descargarGrafica('nivelesFederales')">Descargar gráfica</button>
-      <button onclick="descargarTabla('nivelesFederales')">Descargar tabla</button>
-      <button onclick="toggleVerMas('nivelesFederales')" id="btnVerMas-nivelesFederales" style="margin-top:10px;">Ver más</button>
+  </div>
+</div>
+
+<!-- ============ MODAL CARGA MASIVA ============ -->
+<div id="modal-upload" class="modal-overlay" onclick="cerrarModalFuera(event)">
+  <div class="modal-box">
+    <button class="modal-close" onclick="cerrarModal()" title="Cerrar">&times;</button>
+    <div class="modal-title" id="modal-titulo">Carga Masiva — UNETE</div>
+    <div class="modal-subtitle" id="modal-subtitulo">
+      Sube un archivo CSV para actualizar o insertar registros.
     </div>
+
+    <div class="drop-zone" id="drop-zone">
+      <i class="fas fa-file-csv"></i>
+      Arrastra tu CSV aquí o <strong>haz clic</strong> para seleccionar
+      <input type="file" id="input-archivo" accept=".csv" onchange="onFileChange(this)">
+    </div>
+    <div class="file-name-display" id="nombre-archivo"></div>
+
+    <div class="cct-note">
+      <i class="fas fa-info-circle"></i>
+      El archivo debe tener una columna <strong>CCT</strong> como identificador único.<br>
+      Los registros existentes serán <em>actualizados</em>; los nuevos se <em>insertarán</em>.
+    </div>
+
+    <button class="btn-submit-upload" id="btn-enviar" onclick="enviarArchivo()" disabled>
+      <i class="fas fa-cloud-upload-alt"></i> Subir e Importar
+    </button>
+
+    <div class="upload-result" id="resultado-upload"></div>
   </div>
 </div>
+{% endblock %}
 
-<div style="text-align:center; margin-top:20px;">
-  <a href="{% url 'ver_mapa' %}" class="btn-dashboard">Regresar al mapa</a>
-</div>
-</main>
-
-<footer>
-  <img src="{% static 'img/pie_pag.png' %}" alt="Pie de página">
-</footer>
-
-<!-- Botón arriba -->
-<button id="btnArriba" onclick="window.scrollTo({ top: 0, behavior: 'smooth' });"> ↑</button>
-
-
-<!-- Modal -->
-<div id="modalGrafica">
-  <div id="modalGraficaContent">
-    <button id="cerrarModal">Cerrar</button>
-    <canvas id="graficaModal"></canvas>
-  </div>
-</div>
-
+{% block extra_js %}
 <script>
-function mostrarGrupo(grupo){
-  ['unete','cfe','federales'].forEach(g=>{
-    document.getElementById('grupo-'+g).style.display = (grupo===g)?'block':'none';
-  });
-}
-mostrarGrupo('unete');
+  // Colors for charts
+  const COLORS = ["#7A3E4D", "#C3A04F", "#D4B76A", "#56212F", "#A8873A", "#F5F0E8", "#333333"];
 
-const coloresBase=["#56212f","#977e5b","#c3b08f","#8c6746","#a88f71","#d1bfa3","#e8d6c1"];
-let charts={};
-let modalChart=null;
+  // Tab switching
+  function showTab(id) {
+    document.querySelectorAll('.tab-section').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-link').forEach(el => el.classList.remove('active'));
+    document.getElementById('section-' + id).classList.add('active');
+    document.getElementById('tab-' + id).classList.add('active');
+  }
 
-// Crear gráficas pastel
-function crearGraficaPastel(id, labels, data, titulo){
-  const ctx = document.getElementById(id).getContext('2d');
-  const chart = new Chart(ctx, {
-    type: 'pie',
-    data: { labels: labels, datasets: [{ data: data, backgroundColor: coloresBase }] },
-    options: {
-      responsive: true,
-      plugins: {
-        title: { display: true, text: titulo, color: '#56212f', font: { weight: 'bold', size: 16 } },
-        legend: { position: 'bottom', labels: { color: '#56212f', font: { weight: '600' } } },
-        datalabels: {
-          color: '#fff',
-          font: { weight: 'bold', size: 12 },
-          formatter: (value, ctx) => {
-            return value; // Solo muestra el número
-          }
+  // Chart helpers
+  function createDonut(canvasId, data) {
+    const el = document.getElementById(canvasId);
+    if (!el || !data || data.length === 0) return;
+    return new Chart(el, {
+      type: 'doughnut',
+      data: {
+        labels: data.slice(0, 7).map(i => i._id || 'Sin Dato'),
+        datasets: [{
+          data: data.slice(0, 7).map(i => i.count),
+          backgroundColor: COLORS,
+          borderWidth: 0
+        }]
+      },
+      options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    });
+  }
+
+  function createBar(canvasId, data) {
+    const el = document.getElementById(canvasId);
+    if (!el || !data || data.length === 0) return;
+    return new Chart(el, {
+      type: 'bar',
+      data: {
+        labels: data.map(i => i._id || 'Sin Dato'),
+        datasets: [{
+          label: 'Total',
+          data: data.map(i => i.count),
+          backgroundColor: '#7A3E4D',
+          borderRadius: 5
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+          y: { grid: { display: false }, ticks: { font: { size: 10, weight: 'bold' } } }
         }
       }
-    },
-    plugins: [ChartDataLabels]
-  });
-
-  document.getElementById(id).addEventListener('click', function() {
-    abrirModal(chart);
-  });
-
-  charts[id] = chart;
-}
-
-
-function llenarResumen(id, labels, data){
-  const table = document.getElementById('resumen-' + id);
-  if(!table) return;
-  table.innerHTML = '';
-  table.dataset.fullData = JSON.stringify(labels.map((l,i)=>({label:l,value:data[i]})));
-  const rows = table.dataset.fullData ? JSON.parse(table.dataset.fullData) : [];
-  const maxRows = 5;
-  rows.slice(0,maxRows).forEach(r=>{
-    const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${r.label}</td><td>${r.value}</td>`;
-    table.appendChild(tr);
-  });
-}
-
-function toggleVerMas(id){
-  const table=document.getElementById('resumen-' + id);
-  const rows = JSON.parse(table.dataset.fullData);
-  const btn=document.getElementById('btnVerMas-' + id);
-  if(btn.dataset.expanded==='true'){
-    table.innerHTML='';
-    rows.slice(0,5).forEach(r=>{
-      const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${r.label}</td><td>${r.value}</td>`;
-      table.appendChild(tr);
     });
-    btn.textContent='Ver más';
-    btn.dataset.expanded='false';
-  } else {
-    table.innerHTML='';
-    rows.forEach(r=>{
-      const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${r.label}</td><td>${r.value}</td>`;
-      table.appendChild(tr);
+  }
+
+  function fillTable(targetId, data) {
+    const tbody = document.getElementById(targetId);
+    if (!tbody || !data) return;
+    tbody.innerHTML = '';
+    data.slice(0, 7).forEach((item, idx) => {
+      tbody.innerHTML += `<tr><td><span class="legend-dot" style="background:${COLORS[idx % COLORS.length]}"></span> ${item._id || 'Sin Dato'}</td><td style="text-align:right; font-weight:700;">${item.count}</td></tr>`;
     });
-    btn.textContent='Ver menos';
-    btn.dataset.expanded='true';
   }
-}
 
-function abrirModal(chart){
-  const modal=document.getElementById('modalGrafica');
-  const ctxModal=document.getElementById('graficaModal').getContext('2d');
-  if(modalChart) modalChart.destroy();
-  modalChart=new Chart(ctxModal,{
-    type: chart.config.type,
-    data: chart.data,
-    options:{...chart.options,responsive:true}
-  });
-  modal.style.display='flex';
-}
+  // Main init
+  document.addEventListener('DOMContentLoaded', function () {
+    console.log("Dashboard Loaded");
+    try {
+      const uM = {{ municipios_unete_json| safe }};
+  const uN = {{ niveles_unete_json| safe }};
+  const cM = {{ municipios_cfe_json| safe }};
+  const cN = {{ niveles_cfe_json| safe }};
+  const fM = {{ municipios_federales_json| safe }};
+  const fN = {{ niveles_federales_json| safe }};
 
-document.getElementById('cerrarModal').addEventListener('click', function(){
-  document.getElementById('modalGrafica').style.display='none';
-  if(modalChart) modalChart.destroy();
-});
+  // UNETE
+  createDonut('chartUnm', uM);
+  createBar('chartUnn', uN);
+  fillTable('table-unm', uM);
 
-function descargarGrafica(id){
-  const chart=charts[id];
-  if(chart){
-    const link=document.createElement('a');
-    link.href=chart.toBase64Image();
-    link.download=id+".png";
-    link.click();
+  // CFE
+  createDonut('chartCfeM', cM);
+  createBar('chartCfeN', cN);
+  fillTable('table-cfe-m', cM);
+
+  // Federales
+  createDonut('chartFedM', fM);
+  createBar('chartFedN', fN);
+  fillTable('table-fed-m', fM);
+    } catch (err) {
+    console.error("Chart rendering error:", err);
   }
-}
-
-function descargarTabla(id){
-  const table = document.getElementById('resumen-' + id);
-  if(!table) return;
-
-  let csvContent = "data:text/csv;charset=utf-8,Nombre,Valor\n";
-  const rows = JSON.parse(table.dataset.fullData || '[]');
-
-  rows.forEach(r => {
-    csvContent += `${r.label},${r.value}\n`;
   });
 
-  const encodedUri = encodeURI(csvContent);
-  const link = document.createElement('a');
-  link.setAttribute('href', encodedUri);
-  link.setAttribute('download', id + "_tabla.csv");
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-}
+  /* ============ MODAL CARGA MASIVA ============ */
+  let coleccionActual = '';
 
+  function abrirModal(coleccion, etiqueta) {
+    coleccionActual = coleccion;
+    document.getElementById('modal-titulo').textContent = 'Carga Masiva — ' + etiqueta;
+    document.getElementById('modal-subtitulo').textContent =
+      'Sube un CSV para actualizar o insertar registros en la colección ' + etiqueta + '.';
+    document.getElementById('nombre-archivo').textContent = '';
+    document.getElementById('input-archivo').value = '';
+    document.getElementById('btn-enviar').disabled = true;
+    const res = document.getElementById('resultado-upload');
+    res.style.display = 'none';
+    res.className = 'upload-result';
+    res.innerHTML = '';
+    document.getElementById('modal-upload').classList.add('open');
+  }
 
-// Crear gráficas y llenar tablas
-crearGraficaPastel("municipiosUnete", {{ municipios_unete|safe }}.map(i=>i._id||"Sin Municipio"), {{ municipios_unete|safe }}.map(i=>i.count), "Municipios UNETE");
-crearGraficaPastel("nivelesUnete", {{ niveles_unete|safe }}.map(i=>i._id||"Sin Nivel"), {{ niveles_unete|safe }}.map(i=>i.count), "Niveles Educativos UNETE");
+  function cerrarModal() {
+    document.getElementById('modal-upload').classList.remove('open');
+  }
 
-crearGraficaPastel("municipiosCfe", {{ municipios_cfe|safe }}.map(i=>i._id||"Sin Municipio"), {{ municipios_cfe|safe }}.map(i=>i.count), "Municipios CFE");
-crearGraficaPastel("nivelesCfe", {{ niveles_cfe|safe }}.map(i=>i._id||"Sin Nivel"), {{ niveles_cfe|safe }}.map(i=>i.count), "Niveles Educativos CFE");
+  function cerrarModalFuera(e) {
+    if (e.target === document.getElementById('modal-upload')) cerrarModal();
+  }
 
-crearGraficaPastel("municipiosFederales", {{ municipios_federales|safe }}.map(i=>i._id||"Sin Municipio"), {{ municipios_federales|safe }}.map(i=>i.count), "Municipios Escuelas");
-crearGraficaPastel("nivelesFederales", {{ niveles_federales|safe }}.map(i=>i._id||"Sin Nivel"), {{ niveles_federales|safe }}.map(i=>i.count), "Niveles Educativos Escuelas");
+  function onFileChange(input) {
+    const archivo = input.files[0];
+    if (archivo) {
+      document.getElementById('nombre-archivo').textContent = '📄 ' + archivo.name;
+      document.getElementById('btn-enviar').disabled = false;
+    } else {
+      document.getElementById('nombre-archivo').textContent = '';
+      document.getElementById('btn-enviar').disabled = true;
+    }
+  }
 
-llenarResumen("municipiosUnete", {{ municipios_unete|safe }}.map(i=>i._id||"Sin Municipio"), {{ municipios_unete|safe }}.map(i=>i.count));
-llenarResumen("nivelesUnete", {{ niveles_unete|safe }}.map(i=>i._id||"Sin Nivel"), {{ niveles_unete|safe }}.map(i=>i.count));
+  // Drag & drop
+  const dz = document.getElementById('drop-zone');
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault();
+    dz.classList.remove('drag-over');
+    const dt = e.dataTransfer;
+    if (dt.files && dt.files.length > 0) {
+      document.getElementById('input-archivo').files = dt.files;
+      onFileChange(document.getElementById('input-archivo'));
+    }
+  });
 
-llenarResumen("municipiosCfe", {{ municipios_cfe|safe }}.map(i=>i._id||"Sin Municipio"), {{ municipios_cfe|safe }}.map(i=>i.count));
-llenarResumen("nivelesCfe", {{ niveles_cfe|safe }}.map(i=>i._id||"Sin Nivel"), {{ niveles_cfe|safe }}.map(i=>i.count));
+  async function enviarArchivo() {
+    const inputArchivo = document.getElementById('input-archivo');
+    if (!inputArchivo.files || inputArchivo.files.length === 0) return;
 
-llenarResumen("municipiosFederales", {{ municipios_federales|safe }}.map(i=>i._id||"Sin Municipio"), {{ municipios_federales|safe }}.map(i=>i.count));
-llenarResumen("nivelesFederales", {{ niveles_federales|safe }}.map(i=>i._id||"Sin Nivel"), {{ niveles_federales|safe }}.map(i=>i.count));
+    const btnEnviar = document.getElementById('btn-enviar');
+    const resultado = document.getElementById('resultado-upload');
+
+    // Estado de carga
+    btnEnviar.disabled = true;
+    btnEnviar.innerHTML = '<span class="spinner"></span> Procesando…';
+    resultado.style.display = 'none';
+    resultado.className = 'upload-result';
+
+    const formData = new FormData();
+    formData.append('archivo', inputArchivo.files[0]);
+
+    const url = '/cargar/' + coleccionActual + '/';
+
+    try {
+      const resp = await fetch(url, { method: 'POST', body: formData });
+      const data = await resp.json();
+
+      resultado.style.display = 'block';
+
+      if (data.ok) {
+        resultado.classList.add('success');
+        let html = `<strong><i class="fas fa-check-circle"></i> Importación completada</strong><br>
+          📥 Insertados nuevos: <strong>${data.insertados}</strong><br>
+          🔄 Actualizados: <strong>${data.actualizados}</strong>`;
+        if (data.errores > 0) {
+          html += `<br>⚠️ Filas con error (sin CCT): <strong>${data.errores}</strong>`;
+          if (data.errores_detalle && data.errores_detalle.length > 0) {
+            html += '<ul style="margin:6px 0 0 16px;">' +
+              data.errores_detalle.map(e => `<li>${e}</li>`).join('') + '</ul>';
+          }
+        }
+        resultado.innerHTML = html;
+        // Refrescar totales en la stats-bar después de 1.5s
+        setTimeout(() => location.reload(), 2200);
+      } else {
+        resultado.classList.add('error');
+        resultado.innerHTML = `<strong><i class="fas fa-times-circle"></i> Error:</strong> ${data.error}`;
+      }
+    } catch (err) {
+      resultado.style.display = 'block';
+      resultado.classList.add('error');
+      resultado.innerHTML = `<strong><i class="fas fa-times-circle"></i> Error de red:</strong> ${err.message}`;
+    } finally {
+      btnEnviar.disabled = false;
+      btnEnviar.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Subir e Importar';
+    }
+  }
 </script>
-
-</body>
-</html>
+{% endblock %}

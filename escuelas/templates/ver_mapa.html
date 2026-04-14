@@ -1,394 +1,238 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8" />
-    <title>Mapa de Escuelas</title>
+{% extends 'base.html' %}
+{% load static %}
 
-    <!-- Leaflet -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+{% block title %}Mapa de Escuelas SEIEM{% endblock %}
 
-    <!-- Fuente Montserrat -->
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
-
-    <style>
-        body {
-            margin: 0;
-            background-color: #d6d1ca;
-            font-family: 'Montserrat', sans-serif;
-            color: #56212f;
+{% block extra_css %}
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+    /* Mobile adjustments */
+    @media (max-width: 768px) {
+        .map-wrapper {
+            flex-direction: column;
         }
 
-        h1 {
-            background-color: #977e5b;
-            color: #ffffff;
-            padding: 20px;
-            text-align: center;
-            margin: 0;
-            font-weight: 600;
+        .map-sidebar {
+            width: 100%;
+            height: auto;
+            max-height: 40%;
         }
 
-        form.filtros {
-            background-color: #c3b08f;
-            padding: 15px;
-            border-radius: 10px;
-            width: 90%;
-            margin: 20px auto;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        .map-content {
+            height: 60%;
         }
+    }
 
-        form.filtros label {
-            margin: 10px;
-            display: inline-block;
-            font-weight: 600;
-            color: #56212f;
-        }
+    .instalada {
+        color: #28a745;
+        font-weight: bold;
+    }
+</style>
+{% endblock %}
 
-        form.filtros select,
-        form.filtros input[type="text"] {
-            padding: 5px 10px;
-            border-radius: 5px;
-            border: 1px solid #977e5b;
-            background-color: #ffffff;
-            color: #56212f;
-            min-width: 150px;
-            font-size: 14px;
-        }
+{% block content %}
+<div class="map-wrapper">
+    <!-- Sidebar de Filtros -->
+    <aside class="map-sidebar">
+        <h3 style="border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; margin-top: 0;">Filtros</h3>
 
-        form.filtros button {
-            background-color: #56212f;
-            color: #ffffff;
-            padding: 8px 15px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: background-color 0.3s ease;
-        }
+        <form method="get" id="filterForm">
+            <div class="filter-group checkbox-group" style="display: flex; flex-direction: column; gap: 8px;">
+                <label style="display:block; font-weight:bold; margin-bottom:5px;">Colecciones:</label>
+                <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                    <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                        <input type="checkbox" name="coleccion" value="unete" {% if 'unete' in colecciones %}checked{%
+                            endif %}>
+                        UNETE <span
+                            style="width:12px; height:12px; background:#007bff; display:inline-block; border-radius:50%;"></span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                        <input type="checkbox" name="coleccion" value="cfe" {% if 'cfe' in colecciones %}checked{% endif
+                            %}>
+                        CFE <span
+                            style="width:12px; height:12px; background:#28a745; display:inline-block; border-radius:50%;"></span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                        <input type="checkbox" name="coleccion" value="estatales" {% if 'estatales' in colecciones
+                            %}checked{% endif %}>
+                        ESCUELAS <span
+                            style="width:12px; height:12px; background:#8B4513; display:inline-block; border-radius:50%;"></span>
+                    </label>
+                </div>
+            </div>
 
-        form.filtros button:hover {
-            background-color: #977e5b;
-        }
+            <div class="filter-group">
+                <label>Municipio:</label>
+                <select name="municipio">
+                    <option value="">-- Todos --</option>
+                    {% for item in municipios %}
+                    <option value="{{ item.nombre }}" {% if item.selected %}selected{% endif %}>{{ item.nombre }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
 
-        #map {
-            height: 400px;
-            margin: 20px auto;
-            width: 90%;
-            border: 3px solid #56212f;
-            border-radius: 10px;
-        }
+            <div class="filter-group">
+                <label>Zona Escolar:</label>
+                <select name="zona_escolar">
+                    <option value="">-- Todas --</option>
+                    {% for item in zonas %}
+                    <option value="{{ item.nombre }}" {% if item.selected %}selected{% endif %}>{{ item.nombre }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
 
-        h3 {
-            text-align: center;
-            color: #56212f;
-            margin-top: 20px;
-        }
+            <div class="filter-group">
+                <label>Nivel Educativo:</label>
+                <select name="nivel_educativo">
+                    <option value="">-- Todos --</option>
+                    {% for item in niveles %}
+                    <option value="{{ item.nombre }}" {% if item.selected %}selected{% endif %}>{{ item.nombre }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
 
-        .instalada {
-            color: green;
-            font-weight: bold;
-        }
+            <div class="filter-group">
+                <label>Buscar (CCT o Nombre):</label>
+                <input type="text" name="buscar" value="{{ buscar }}" placeholder="Ej. 15DPR...">
+            </div>
 
-        a {
-            color: #56212f;
-            text-decoration: underline;
-            font-weight: 600;
-        }
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button type="submit" class="btn" style="flex:1;">Filtrar</button>
+                <button type="button" onclick="limpiarFiltros()" class="btn btn-secondary"
+                    style="flex:1;">Limpiar</button>
+            </div>
+        </form>
+    </aside>
 
-        a:hover {
-            color: #977e5b;
-        }
-
-        button.popup-btn {
-            background-color: #56212f;
-            color: #ffffff;
-            border: none;
-            border-radius: 4px;
-            padding: 5px 10px;
-            margin-top: 5px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        button.popup-btn:hover {
-            background-color: #977e5b;
-        }
-
-        .btn-dashboard {
-            background-color: #56212f;
-            color: #ffffff;
-            padding: 10px 20px;
-            text-decoration: none;
-            border-radius: 5px;
-            font-weight: 600;
-            transition: background-color 0.3s ease;
-        }
-
-        .btn-dashboard:hover {
-            background-color: #977e5b;
-        }
-
-        /* Estilos popups por colección */
-        .popup-unete .leaflet-popup-content-wrapper {
-            border: 3px solid #007bff !important;
-            box-shadow: 0 0 8px #007bff;
-        }
-
-        .popup-cfe .leaflet-popup-content-wrapper {
-            border: 3px solid #28a745 !important;
-            box-shadow: 0 0 8px #28a745;
-        }
-
-        .popup-estatales .leaflet-popup-content-wrapper {
-            border: 3px solid #8B4513 !important;
-            box-shadow: 0 0 8px #8B4513;
-        }
-
-
-        /* Leyenda del mapa */
-.leaflet-legend {
-    position: absolute;
-    bottom: 20px;
-    right: 20px;
-    background: rgba(255, 255, 255, 0.9);
-    padding: 10px 15px;
-    border-radius: 8px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-    font-size: 14px;
-    color: #56212f;
-    font-weight: 600;
-}
-
-.leaflet-legend div {
-    display: flex;
-    align-items: center;
-    margin-bottom: 5px;
-}
-
-.leaflet-legend div:last-child {
-    margin-bottom: 0;
-}
-
-.leaflet-legend span.color-box {
-    display: inline-block;
-    width: 18px;
-    height: 18px;
-    margin-right: 8px;
-    border-radius: 4px;
-    border: 1px solid #56212f;
-}
-
-    </style>
-</head>
-
-<body>
-     
-    <h1>Georeferenciación de Centros de Trabajo</h1>
-    <p style="text-align:center;">Oficina de Administración de Recursos</p>
-  
-    <form method="get" class="filtros">
-        <label>Programas Tecnológicos Educativos</label><br>
-        <label>
-            <input type="checkbox" name="coleccion" value="unete" {% if request.GET.coleccion and 'unete' in colecciones %}checked{% endif %}> UNETE
-        </label>
-        <label>
-            <input type="checkbox" name="coleccion" value="cfe" {% if request.GET.coleccion and 'cfe' in colecciones %}checked{% endif %}> CFE
-        </label>
-        <label>
-            <input type="checkbox" name="coleccion" value="estatales" {% if request.GET.coleccion and 'estatales' in colecciones %}checked{% endif %}> ESCUELAS
-        </label>
-        <div style="text-align:right; margin-top:20px;">
-  <a href="{% url 'menu' %}" 
-     style="display:inline-block; width:25px; height:25px; line-height:25px; 
-            border-radius:40%; background:#56212f; color:#fff; text-align:center; 
-            text-decoration:none; font-weight:600; font-size:18px; transition:0.3s;">
-    ←
-  </a>
-</div>
-        <label>
-            Municipio:
-            <select name="municipio">
-                <option value="">--Todos--</option>
-                {% for m in municipios %}
-                    <option value="{{ m }}" {% if request.GET.municipio == m %}selected{% endif %}>{{ m }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <label>
-            Zona Escolar:
-            <select name="zona_escolar">
-                <option value="">--Todas--</option>
-                {% for z in zonas %}
-                    <option value="{{ z }}" {% if request.GET.zona_escolar == z %}selected{% endif %}>{{ z }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <label>
-            Subdirección/Departamento:
-            <select name="nivel_educativo">
-                <option value="">--Todos--</option>
-                {% for n in niveles %}
-                    <option value="{{ n }}" {% if request.GET.nivel_educativo == n %}selected{% endif %}>{{ n }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <label>
-            Buscar (CCT o Nombre):
-            <input type="text" name="buscar" value="{{ buscar }}" placeholder="Escribe CCT o Nombre">
-        </label>
-        <div style="display: flex; align-items: center; gap: 10px; margin: 5px;">
-            <button type="submit" style="flex: 1; padding: 8px; background-color: #56212f; color: white; border: none; border-radius: 5px;">Filtrar</button>
-            <button type="button" onclick="limpiarFiltros()" style="flex: 1; padding: 8px; background-color: #977e5b; color: white; border: none; border-radius: 5px;">Limpiar</button>
-            <a href="{% url 'dashboard' %}" style="flex: 1; text-align: center; padding: 8px; background-color: #56212f; color: white; text-decoration: none; border-radius: 5px;">Estadisticos</a>
-        </div>
-    </form>
-
-    <div id="map"></div>
- 
-    <script>
-        function limpiarFiltros() {
-            document.querySelector('form.filtros').reset();
-            window.location.href = window.location.pathname;
-        }
-    </script>
-
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-    <script>
-        var map = L.map('map').setView([19.4326, -99.1332], 7);
-        // Crear la leyenda
-var legend = L.control({position: 'bottomright'});
-
-legend.onAdd = function(map) {
-    var div = L.DomUtil.create('div', 'leaflet-legend');
-    div.innerHTML += `<div><span class="color-box" style="background:#007bff"></span> UNETE</div>`;
-    div.innerHTML += `<div><span class="color-box" style="background:#28a745"></span> CFE</div>`;
-    div.innerHTML += `<div><span class="color-box" style="background:#8B4513"></span> ESCUELAS</div>`;
-    return div;
-};
-
-legend.addTo(map);
-
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap'
-        }).addTo(map);
-
-        // Íconos
-        var iconUnete = L.divIcon({
-            className: "custom-marker",
-            html: `<svg width="25" height="41" viewBox="0 0 25 41"><path d="M12.5 0C5.6 0 0 5.6 0 12.5C0 23.44 12.5 41 12.5 41C12.5 41 25 23.44 25 12.5C25 5.6 19.4 0 12.5 0Z" fill="#007bff"/><circle cx="12.5" cy="12.5" r="6.5" fill="white"/></svg>`,
-            iconSize: [25,41],
-            iconAnchor:[12,41],
-            popupAnchor:[1,-34]
-        });
-
-        var iconCfe = L.divIcon({
-            className: "custom-marker",
-            html: `<svg width="25" height="41" viewBox="0 0 25 41"><path d="M12.5 0C5.6 0 0 5.6 0 12.5C0 23.44 12.5 41 12.5 41C12.5 41 25 23.44 25 12.5C25 5.6 19.4 0 12.5 0Z" fill="#28a745"/><circle cx="12.5" cy="12.5" r="6.5" fill="white"/></svg>`,
-            iconSize: [25,41],
-            iconAnchor:[12,41],
-            popupAnchor:[1,-34]
-        });
-
-        var iconEstatales = L.divIcon({
-            className: "custom-marker",
-            html: `<svg width="25" height="41" viewBox="0 0 25 41"><path d="M12.5 0C5.6 0 0 5.6 0 12.5C0 23.44 12.5 41 12.5 41C12.5 41 25 23.44 25 12.5C25 5.6 19.4 0 12.5 0Z" fill="#8B4513"/><circle cx="12.5" cy="12.5" r="6.5" fill="white"/></svg>`,
-            iconSize: [25,41],
-            iconAnchor:[12,41],
-            popupAnchor:[1,-34]
-        });
-
-        var datos = {{ datos|safe }};
-        var total_instaladas = 0;
-
-        // Colecciones seleccionadas
-        var coleccionesSeleccionadas = [];
-        {% if request.GET.coleccion %}
-            {% for c in colecciones %}
-                coleccionesSeleccionadas.push("{{ c }}");
-            {% endfor %}
-        {% endif %}
-
-        if (coleccionesSeleccionadas.length > 0) {
-            datos.forEach(function(item) {
-                var coleccion = item.COLECCION.toLowerCase();
-                if (!coleccionesSeleccionadas.includes(coleccion)) return;
-                if (item.LATITUD && item.LONGITUD) {
-                    let nombre_ct = "";
-                    let contenido_popup = "";
-                    let urlMaps = item["LINK"];
-                    if (!urlMaps || urlMaps.trim() === "" || !urlMaps.startsWith("http")) {
-                        urlMaps = `https://www.google.com/maps?q=${item.LATITUD},${item.LONGITUD}`;
-                    }
-
-                    var iconoUsar, clasePopup;
-                    var programaNombre = "";
-                    if (coleccion === "unete") programaNombre = "UNETE";
-                    else if (coleccion === "cfe") programaNombre = "CFE";
-                    else if (coleccion === "estatales") programaNombre = "FEDERALES";
-                    else programaNombre = coleccion.toUpperCase();
-
-                    if (coleccion === "cfe") {
-                        iconoUsar = iconCfe;
-                        clasePopup = "popup-cfe";
-                        nombre_ct = item["NOMBRE DEL CT"] || "Sin nombre";
-                        var internet = item["INTERNET PARA TODOS CFE 4G (CPE)"] || "No registrada";
-                        var fechaEntrega = item["FECHA DE ENTREGA"] || "-";
-
-                        if (internet.trim().toUpperCase() === "INSTALADA") {
-                            total_instaladas += 1;
-                            internet = `<span class="instalada">INSTALADA</span>`;
-                        }
-
-                        contenido_popup = `<b>${nombre_ct}</b><br>
-                            <b>Programa:</b> ${programaNombre}<br>
-                            CCT: ${item["CCT"] || "-"}<br>
-                            Domicilio: ${item["DOMICILIO"] || "No registrado"}<br>
-                            Sector Educativo: ${item["SECTOR EDUCATIVO"] || "-"}<br>
-                            Zona Escolar: ${item["ZONA ESCOLAR"] || "-"}<br>
-                            Coordenadas: ${item["COORDENADAS"] || "-"}<br>
-                            Director: ${item["NOMBRE DEL DIRECTOR O RESPONSABLE DEL CT"] || "-"}<br>
-                            Tel. Director: ${item["NO TELEFONICO DEL DIRECTOR"] || "-"}<br>
-                            Correo institucional: ${item["CORREO ELECTRONICO INSTITUCIONAL"] || "-"}<br>
-                            Internet CFE: ${internet}<br>
-                            CPE2: ${item["CPE2"] || "-"}<br>
-                            AP2: ${item["AP2"] || "-"}<br>
-                            Fecha Entrega: ${fechaEntrega}<br>
-                            <a href="${urlMaps}" target="_blank">Ver en Google Maps</a>`;
-                    } else if (coleccion === "unete" || coleccion === "estatales") {
-                        iconoUsar = coleccion === "unete" ? iconUnete : iconEstatales;
-                        clasePopup = coleccion === "unete" ? "popup-unete" : "popup-estatales";
-                        nombre_ct = item["NOMBRE DEL CT"] || "Sin nombre";
-
-                        contenido_popup = `<b>${nombre_ct}</b><br>
-                            <b>Programa:</b> ${programaNombre}<br>
-                            CCT: ${item["CCT"] || "-"}<br>
-                            Municipio: ${item["MUNICIPIO"] || "-"}<br>
-                            Zona Escolar: ${item["ZONA ESCOLAR"] || "-"}<br>
-                            Nivel: ${item["NIVEL EDUCATIVO"] || "-"}<br>
-                            Turno: ${item["TURNO"] || "-"}<br>
-                            <a href="${urlMaps}" target="_blank">Ver en Google Maps</a>`;
-                    }
-
-                    var marker = L.marker([item.LATITUD, item.LONGITUD], { icon: iconoUsar }).addTo(map);
-                    marker.bindPopup(contenido_popup);
-                    marker.on('popupopen', function(e){
-                        if(e.popup._container) e.popup._container.classList.add(clasePopup);
-                    });
-                    marker.on('popupclose', function(e){
-                        if(e.popup._container) e.popup._container.classList.remove(clasePopup);
-                    });
-                }
-            });
-
-            if (datos.some(d => d.COLECCION.toLowerCase() === "cfe")) {
-                document.body.insertAdjacentHTML('beforeend', `<h3>Total INSTALADAS: ${total_instaladas}</h3>`);
-            }
-        }
-    </script>
-
-    <div style="text-align: center; margin-top: 30px;">
-        <a href="{% url 'menu' %}" class="btn-dashboard">Regresar</a>
+    <!-- Área del Mapa -->
+    <div class="map-content">
+        <div id="map"></div>
     </div>
-</body>
-</html>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    function limpiarFiltros() {
+        window.location.href = "{% url 'ver_mapa' %}";
+    }
+
+    // Centered on Estado de México with appropriate zoom and bounds
+    var map = L.map('map', {
+        minZoom: 8,
+        maxBounds: [
+            [18.3, -100.8], // Southwest
+            [20.5, -98.3]   // Northeast
+        ],
+        maxBoundsViscosity: 1.0
+    }).setView([19.35, -99.6], 9);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+
+    // Leyenda
+    var legend = L.control({ position: 'bottomright' });
+    legend.onAdd = function (map) {
+        var div = L.DomUtil.create('div', 'leaflet-legend');
+        div.innerHTML += `<div><span class="color-box" style="background:#007bff"></span> UNETE</div>`;
+        div.innerHTML += `<div><span class="color-box" style="background:#28a745"></span> CFE</div>`;
+        div.innerHTML += `<div><span class="color-box" style="background:#8B4513"></span> ESCUELAS</div>`;
+        return div;
+    };
+    legend.addTo(map);
+
+    // Iconos
+    var createIcon = (color) => L.divIcon({
+        className: "custom-marker",
+        html: `<svg width="25" height="41" viewBox="0 0 25 41"><path d="M12.5 0C5.6 0 0 5.6 0 12.5C0 23.44 12.5 41 12.5 41C12.5 41 25 23.44 25 12.5C25 5.6 19.4 0 12.5 0Z" fill="${color}"/><circle cx="12.5" cy="12.5" r="6.5" fill="white"/></svg>`,
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34]
+    });
+
+    var iconUnete = createIcon('#007bff');
+    var iconCfe = createIcon('#28a745');
+    var iconEstatales = createIcon('#8B4513');
+
+    // Datos
+    var datos = {{ datos_json| safe }};
+    var total_instaladas = {{ total_instaladas }};
+
+    // Render markers
+    var markersLayer = L.layerGroup().addTo(map);
+
+    datos.forEach(function (item) {
+        if (!item.LATITUD || !item.LONGITUD) return;
+
+        var coleccion = item.COLECCION ? item.COLECCION.toLowerCase() : '';
+        var iconoUsar, clasePopup;
+        var programaNombre = coleccion.toUpperCase();
+
+        if (coleccion === 'unete') {
+            iconoUsar = iconUnete;
+            clasePopup = 'popup-unete';
+        } else if (coleccion === 'cfe') {
+            iconoUsar = iconCfe;
+            clasePopup = 'popup-cfe';
+        } else {
+            iconoUsar = iconEstatales;
+            clasePopup = 'popup-estatales';
+        }
+
+        // Construir contenido popup
+        let contenido_popup = "";
+        let urlMaps = item.LINK && item.LINK.startsWith('http') ? item.LINK : `https://www.google.com/maps?q=${item.LATITUD},${item.LONGITUD}`;
+        let nombre = item.NOMBRE_CT || item['NOMBRE DEL CT'] || 'Sin Nombre';
+
+        if (coleccion === 'cfe') {
+            let registro = item['INTERNET PARA TODOS CFE 4G (CPE)'] || 'No Reg.';
+            if (registro.toUpperCase() === 'INSTALADA') registro = '<span class="instalada">INSTALADA</span>';
+
+            contenido_popup = `
+                <b>${nombre}</b><br>
+                <small>${programaNombre}</small><hr style="margin:5px 0;">
+                <b>CCT:</b> ${item.CCT || '-'}<br>
+                <b>Domicilio:</b> ${item.DOMICILIO || '-'}<br>
+                <b>Estado:</b> ${registro}<br>
+                <b>Coordenadas:</b> ${item.LATITUD}, ${item.LONGITUD}<br>
+                <div style="text-align:center; margin-top:5px;">
+                    <a href="${urlMaps}" target="_blank" class="btn btn-secondary" style="padding:2px 8px; font-size:12px;">Ver Mapa</a>
+                </div>
+            `;
+        } else {
+            contenido_popup = `
+                <b>${nombre}</b><br>
+                <small>${programaNombre}</small><hr style="margin:5px 0;">
+                <b>CCT:</b> ${item.CCT || '-'}<br>
+                <b>Municipio:</b> ${item.MUNICIPIO || '-'}<br>
+                <b>Zona Escolar:</b> ${item['ZONA ESCOLAR'] || '-'}<br>
+                <b>Nivel:</b> ${item['NIVEL EDUCATIVO'] || '-'}<br>
+                <b>Turno:</b> ${item.TURNO || '-'}<br>
+                <div style="text-align:center; margin-top:5px;">
+                    <a href="${urlMaps}" target="_blank" class="btn btn-secondary" style="padding:2px 8px; font-size:12px;">Ver Mapa</a>
+                </div>
+            `;
+        }
+
+        var marker = L.marker([item.LATITUD, item.LONGITUD], { icon: iconoUsar });
+        marker.bindPopup(contenido_popup);
+        marker.on('popupopen', function (e) {
+            if (e.popup._container) e.popup._container.classList.add(clasePopup);
+        });
+        markersLayer.addLayer(marker);
+    });
+
+    // Ajustar vista si hay marcadores
+    if (datos.length > 0) {
+        var group = new L.featureGroup(markersLayer.getLayers());
+        map.fitBounds(group.getBounds());
+    }
+
+</script>
+{% endblock %}

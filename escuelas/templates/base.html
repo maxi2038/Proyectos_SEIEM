@@ -1,0 +1,62 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SEIEM - Sistema de Gestión Administrativo{% endblock %}</title>
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <!-- Global CSS with Cache Buster -->
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}?v=1.4">
+
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body>
+
+    <nav class="navbar">
+        <a href="{% url 'menu' %}" class="navbar-brand">
+            <div class="logo-circle">S</div>
+            <div class="brand-info">
+                <span class="brand-name">SEIEM</span>
+                <span class="brand-office">Oficina de Administracion de Recursos</span>
+            </div>
+        </a>
+
+        <div class="navbar-nav">
+            <a href="{% url 'menu' %}"
+                class="nav-link {% if request.resolver_match.url_name == 'menu' %}active{% endif %}">
+                <i class="fas fa-home"></i> Inicio
+            </a>
+            <a href="{% url 'ver_mapa' %}"
+                class="nav-link {% if request.resolver_match.url_name == 'ver_mapa' %}active{% endif %}">
+                <i class="fas fa-map-location-dot"></i> Mapa
+            </a>
+            <a href="{% url 'dashboard' %}"
+                class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                <i class="fas fa-chart-bar"></i> Estadísticos
+            </a>
+        </div>
+    </nav>
+
+    <main style="flex: 1; display: flex; flex-direction: column;">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        Servicios Educativos Integrados al Estado de México — Oficina de Administración de Recursos<br>
+        Programas Tecnológicos Educativos © 2026
+    </footer>
+
+    {% block extra_js %}{% endblock %}
+</body>
+
+</html>
